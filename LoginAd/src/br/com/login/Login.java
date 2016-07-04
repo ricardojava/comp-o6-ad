@@ -13,8 +13,12 @@ import javax.servlet.http.HttpServletResponse;
 import javax.xml.rpc.ServiceException;
 import javax.xml.soap.SOAPElement;
 import javax.xml.soap.SOAPException;
+import javax.xml.ws.BindingProvider;
 
+import org.apache.axis.message.SOAPBodyElement;
+import org.apache.axis.message.SOAPHeader;
 import org.apache.axis.message.SOAPHeaderElement;
+import org.apache.axis.utils.Options;
 
 import br.com.avianca.portal.Perfil;
 import br.com.avianca.portal.UserCredentials;
@@ -51,11 +55,12 @@ public class Login extends HttpServlet {
 
 		try {
 
-			String s = login(use, pwd);
+			String s = login("anogueira","Senha#13");
 
 			// getSecurity();
+			System.out.println(s);
 
-			response.getWriter().append("Served at: ").append(s);
+			//response.getWriter().append("Served at: ").append(s);
 
 		} catch (SOAPException e) {
 			// TODO Auto-generated catch block
@@ -79,32 +84,41 @@ public class Login extends HttpServlet {
 
 		try {
 
-			String ipAdress = InetAddress.getLocalHost().getHostAddress();
+			//String ipAdress = InetAddress.getLocalHost().getHostAddress();
 
 			WsPortalAvianca wsLocator = new WsPortalAviancaLocator();
 
 			WsPortalAviancaSoap ws = wsLocator.getwsPortalAviancaSoap();
+			
+			//ws._getServiceClient().getOptions().setProperty(org.apache.axis2.Constants.Configuration.CHARACTER_SET_ENCODING,"iso-8859-1");
+			
+			
 
-			SOAPHeaderElement authentication = new SOAPHeaderElement("https://portal.avianca.com.br/",
-					"IpAddressHeader");
+			SOAPHeaderElement headerElement = new SOAPHeaderElement("https://portal.avianca.com.br/","IpAddressHeader");
+			//authentication.setEncodingStyle("utf-8");
+			//headerElement.addNamespaceDeclaration("IpAddressHeader","https://portal.avianca.com.br/");
+			//headerElement.setMustUnderstand(true);
+			
 
-			SOAPElement node = authentication.addChildElement("IpAddress");
-			node.addTextNode(ipAdress);
+			SOAPElement node = headerElement.addChildElement("IpAddress");
+			node.addTextNode("192.168.1.132");
 
-			SOAPHeaderElement ip = new SOAPHeaderElement("IpAddress", ipAdress);
+			//SOAPHeaderElement ip = new SOAPHeaderElement("IpAddress", "192.168.1.132");			
+			
+			/*((WsPortalAviancaSoapStub) ws).setHeader("https://portal.avianca.com.br/","IpAddressHeader","192.168.1.132");*/
 
-			((WsPortalAviancaSoapStub) ws).setHeader(authentication);
-
+			
+			
 			UserCredentials credentials = new UserCredentials(user, pwd);
+			((WsPortalAviancaSoapStub) ws).setHeader(headerElement);
 
 			ws.login(credentials);
+			
 
 			Perfil[] p = ws.getPerfil();
 
 			perfil = p[0];
 
-		} catch (UnknownHostException e) {
-			System.out.println("UnknownHostException " + e.getMessage());
 		} catch (ServiceException e) {
 			System.out.println("ServiceException " + e.getMessage());
 		} catch (RemoteException e) {
@@ -155,6 +169,39 @@ public class Login extends HttpServlet {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+	}
+	
+	
+	private static String login2(String user, String pwd) throws SOAPException {
+		Perfil perfil = null;
+
+		try {
+
+			WsPortalAvianca wsLocator = new WsPortalAviancaLocator();
+			WsPortalAviancaSoap ws = wsLocator.getwsPortalAviancaSoap();			
+			
+			SOAPHeaderElement ipHeader = new SOAPHeaderElement("https://portal.avianca.com.br/", "IpAddressHeader");
+/*
+			SOAPElement node = ipHeader.addChildElement("IpAddress");
+			node.addTextNode(ipAdress);*/
+			
+			
+			UserCredentials credentials = new UserCredentials(user, pwd);
+			((BindingProvider)ws).getBinding().getHandlerChain().add(new SOAPHeaderHandler("192.168.0.222"));
+
+			ws.login(credentials);
+
+			Perfil[] p = ws.getPerfil();
+
+			perfil = p[0];
+
+		} catch (ServiceException e) {
+			System.out.println("ServiceException " + e.getMessage());
+		} catch (RemoteException e) {
+			System.out.println("RemoteException " + e.getMessage());
+		}
+		return perfil.getNomePerfil();
 
 	}
 
